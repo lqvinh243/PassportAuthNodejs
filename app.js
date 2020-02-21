@@ -9,6 +9,7 @@ var usersRouter = require('./routes/users');
 var session = require('express-session')
 const mongoose = require('mongoose');
 var passport = require('passport');
+const passportfb = require('passport-facebook').Strategy;
 
 var app = express();
 

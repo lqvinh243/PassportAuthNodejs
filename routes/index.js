@@ -4,6 +4,7 @@ const bcrypt = require('bcrypt');
 var LocalStrategy = require('passport-local').Strategy;
 var passport = require('passport');
 var dbuser = require("../model/thongtin")
+const passportfb = require("passport-facebook").Strategy;
 
 
 
@@ -53,11 +54,11 @@ passport.use(new LocalStrategy(
 ));
 
 passport.serializeUser(function(user, done) {
-  done(null, user.username);
+  done(null, user.id);
 });
 
 passport.deserializeUser(function(a, done) {
-  dbuser.findOne({"username":a},function(err,dl){
+  dbuser.findOne({"id":a},function(err,dl){
     if(dl) return done(null,dl);
     else return done(null,false);
   })
@@ -96,5 +97,30 @@ router.get('/loginsucc',function(req,res,next){
 router.get('/logout',(req,res,next)=>{req.logout();res.redirect('/')});
 
 
+router.get('/auth/fb',passport.authenticate('facebook',{scope:['email']}));
+router.get('/auth/fb/a',passport.authenticate('facebook',{failureRedirect:'/',successRedirect:'/loginsucc'}));
+
+passport.use(new passportfb({
+  clientID:"543289193203906",
+  clientSecret:"294740e3ff2c28093f0edfb91beee983",
+  callbackURL:"http://localhost:3000/auth/fb/a",
+  profileFields:['email','displayName','gender']
+},
+  (accessToken,refreshToken,profile,done)=>{
+    console.log(profile);
+
+    dbuser.findOne({'id':profile._json.id}).then(rel => {
+      if(rel) return done(null,rel);
+      const newUs = {
+        'id':profile._json.id,
+        'emails':profile._json.email,
+        'name':profile._json.name
+      }
+
+      var SaveUs = new dbuser(newUs);
+      SaveUs.save().then(err => { return done(null,newUs)});
+    }).catch(err => {console.err(err)});
+  }
+))
 
 module.exports = router;
